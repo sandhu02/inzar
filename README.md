@@ -1,17 +1,67 @@
-# inzar
+# Inzar (إنذار)
 
-A new Flutter project.
+> **Capture quickly. Verify intelligently. Alert locally.**
+
+Inzar is a crowdsourced, AI-verified, real-time incident reporting and local awareness mobile application. It helps nearby residents stay informed about immediate local disruptions (fires, road accidents, flooding, gatherings, and blockages) through verified reports and privacy-respecting approximate locations.
+
+---
+
+## Key Features
+
+- **Interactive Radar Map:** Dark night-mode map with real-time incident markers, cluster counts, configurable radius filtering (1–50 km), and instant preview sheets.
+- **Incident Details:** Rich metadata inspection (reported time, distance, approximate location, status) with AI review and corroboration badges.
+- **In-App Camera & Reporting Flow:** Native capture flow designed for quick reports without gallery uploads, extensible categories, and approximate location adjustment (~200 m fuzzing).
+- **AI Verification Progress:** Transparent multi-step submission pipeline explaining publication, human-review, or denial outcomes.
+- **Activity & History:** Filterable submissions dashboard (`All`, `Review`, `Live`, `Denied`) to track report statuses.
+- **Settings & Privacy:** Custom alert radiuses, push notification preferences, permission management, and local emergency contact shortcuts (15 / 1122).
+
+---
+
+## Architecture & Tech Stack
+
+The project follows **Clean Architecture** with separation of concerns:
+
+```
+lib/
+├── app/               # Routing (GoRouter + StatefulShellRoute), DI (GetIt), Bootstrap
+├── core/              # Design tokens (AppColors, AppTypography), UI components, errors
+├── domain/            # Core entities (Incident, Category, ReviewStatus, ReportDraft)
+├── features/          # Feature modules with BLoCs, views, and widgets
+│   ├── map/           # Interactive radar canvas, preview sheet, radius selector
+│   ├── incident_details/ # Incident metadata, directions, and safety disclaimer
+│   ├── report/        # Camera capture, incident form, and AI review progress
+│   ├── activity/      # Filterable submission history
+│   └── settings/      # Alert preferences, permissions, and theme mode
+└── shell/             # Persistent bottom navigation shell with safe area handling
+```
+
+- **Framework:** Flutter (3.47+ / Dart 3.13+)
+- **State Management:** `flutter_bloc`
+- **Navigation:** `go_router` (Stateful Shell branches)
+- **Dependency Injection:** `get_it`
+- **Typography:** Google Fonts (`Inter` and `Roboto Mono`)
+
+---
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+### Prerequisites
+- [Flutter SDK](https://flutter.dev/docs/get-started/install) installed and configured.
 
-A few resources to get you started if this is your first Flutter project:
+### Run the App
+```bash
+# Get dependencies
+flutter pub get
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+# Run on connected device or emulator
+flutter run
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Verification & Tests
+```bash
+# Run static analysis
+flutter analyze
+
+# Run unit and widget tests
+flutter test
+```
