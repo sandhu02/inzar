@@ -123,19 +123,45 @@ lib/
   - Report cards with photo thumbnail, category, title, metadata (`Just now · F-7`), and status badge.
   - Empty state support.
   - Link `Back to map to report`.
-- [x] **Screen 7 — Settings:**
-  - Map search radius preference dropdown.
-  - Nearby incident alerts push notification toggle and alert distance.
-  - Permissions status cards (Location, Camera, Notifications) with plain language explanations.
-  - Appearance theme switcher (Dark, Light, System).
-  - Privacy explanation and emergency services contact guide (15 / 1122).
+- [x] **Screen 7 — Settings (Updated):**
+  - User Profile header card with avatar initials ("AK"), "Ayesha Khan", email, and navigation to `/profile`.
+  - MAP section: Default radius (5 km), Map center (Current location), Map style (Dark).
+  - ALERTS section: Nearby alerts toggle with active coral switch, Alert radius (10 km), Categories (All).
+  - PERMISSIONS section: Location, Camera, and Notifications status indicators with toggle actions.
+  - PRIVACY section: Privacy policy and How location is handled dialogues.
+  - APPEARANCE section: Theme switcher (Dark / Light / System).
+- [x] **Screen 8 — Onboarding (Pages 7 & 8):**
+  - 3-step tour with top brand logo and "Skip" action.
+  - Step 1: "See what's happening near you." with animated radar visual graphic, step tag "1 / 3", dot indicators, and "Next" pill button.
+  - Step 2: "Capture quickly. Verify intelligently." with camera verification badge.
+  - Step 3: "Allow only what you need." with Location, Camera, and Notifications permission request rows, full-width "Continue" button, and disclaimer.
+- [x] **Screen 9 — Sign In (Page 9):**
+  - Brand header with diamond logo and title "Welcome back."
+  - Email and password fields with password visibility toggle.
+  - "Forgot password?" shortcut.
+  - Light cream "Sign in" button.
+  - "OR" divider and "Continue with Google" social authentication button.
+  - "New here? Create account" navigation link.
+- [x] **Screen 10 — Sign Up (Page 10):**
+  - Back navigation with title "Create your account." and subtitle "Your name is never shown on reports."
+  - Name, Email, and Password form fields with password visibility toggle.
+  - Light cream "Create account" button.
+  - Google sign-in button and Terms/Privacy acknowledgment.
+  - "Have an account? Sign in" navigation link.
+- [x] **Screen 11 — Profile (Page 12):**
+  - Back navigation with top title "Profile".
+  - Large circle avatar initials ("AK"), name "Ayesha Khan", and "✓ Signed in with Google" badge.
+  - Account info card: Display name, Email, Sign-in method, Password.
+  - "Anonymous by default" privacy explanation card.
+  - Reports & data card: "My reports (12)" and "Download my data".
+  - "Sign out" button and "Delete account" destructive action.
 - [x] **Shell & GoRouter Integration:**
   - Stateful 3-tab navigation (Map, Activity, Settings).
   - Active orange line indicator above selected tab (matching Page 6).
   - Bottom navigation bar wrapped in `SafeArea(top: false)` with background color extending edge-to-edge, preventing any obstruction by Android 3-button or gesture system navigation.
 - [x] **Testing & Quality Assurance:**
   - `flutter analyze`: 0 issues found.
-  - `flutter test`: 9 tests passing (MapBloc, ActivityBloc, ReportFlowBloc, InzarApp smoke test).
+  - `flutter test`: 13 tests passing (AuthBloc, MapBloc, ActivityBloc, ReportFlowBloc, InzarApp smoke test).
 
 ---
 

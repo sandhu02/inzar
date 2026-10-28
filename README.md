@@ -13,7 +13,9 @@ Inzar is a crowdsourced, AI-verified, real-time incident reporting and local awa
 - **In-App Camera & Reporting Flow:** Native capture flow designed for quick reports without gallery uploads, extensible categories, and approximate location adjustment (~200 m fuzzing).
 - **AI Verification Progress:** Transparent multi-step submission pipeline explaining publication, human-review, or denial outcomes.
 - **Activity & History:** Filterable submissions dashboard (`All`, `Review`, `Live`, `Denied`) to track report statuses.
-- **Settings & Privacy:** Custom alert radiuses, push notification preferences, permission management, and local emergency contact shortcuts (15 / 1122).
+- **Onboarding & Permissions:** 3-step tour with visual radar graphic and transparent permission controls (Location, Camera, Notifications).
+- **Authentication & Profile:** Clean Sign In and Sign Up flows with Google integration, anonymous-by-default notices, and personal report archives.
+- **Settings & Privacy:** User profile card, custom alert radiuses, push notification preferences, permission management, and local emergency contact shortcuts (15 / 1122).
 
 ---
 
@@ -31,6 +33,9 @@ lib/
 │   ├── incident_details/ # Incident metadata, directions, and safety disclaimer
 │   ├── report/        # Camera capture, incident form, and AI review progress
 │   ├── activity/      # Filterable submission history
+│   ├── auth/          # Sign In, Sign Up views & AuthBloc
+│   ├── onboarding/    # 3-step onboarding tour with radar graphic
+│   ├── profile/       # User profile details, data download, account management
 │   └── settings/      # Alert preferences, permissions, and theme mode
 └── shell/             # Persistent bottom navigation shell with safe area handling
 ```

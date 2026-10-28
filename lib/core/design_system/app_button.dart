@@ -14,6 +14,7 @@ class AppButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final AppButtonVariant variant;
   final IconData? icon;
+  final Widget? leading;
   final bool isFullWidth;
   final double height;
   final double borderRadius;
@@ -25,6 +26,7 @@ class AppButton extends StatelessWidget {
     required this.onPressed,
     this.variant = AppButtonVariant.primary,
     this.icon,
+    this.leading,
     this.isFullWidth = false,
     this.height = 50,
     this.borderRadius = 25, // Soft pill shape as in mockups
@@ -75,7 +77,10 @@ class AppButton extends StatelessWidget {
         mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (icon != null) ...[
+          if (leading != null) ...[
+            leading!,
+            const SizedBox(width: 10),
+          ] else if (icon != null) ...[
             Icon(icon, size: 18, color: textColor),
             const SizedBox(width: 8),
           ],

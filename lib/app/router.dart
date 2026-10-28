@@ -9,6 +9,10 @@ import '../features/incident_details/view/incident_details_page.dart';
 import '../features/report/view/camera_page.dart';
 import '../features/report/view/form_page.dart';
 import '../features/report/view/progress_page.dart';
+import '../features/onboarding/view/onboarding_page.dart';
+import '../features/auth/view/sign_in_page.dart';
+import '../features/auth/view/sign_up_page.dart';
+import '../features/profile/view/profile_page.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -84,6 +88,27 @@ final GoRouter appRouter = GoRouter(
       parentNavigatorKey: _rootNavigatorKey,
       builder: (context, state) => const ProgressPage(),
     ),
+
+    // Onboarding & Authentication
+    GoRoute(
+      path: '/onboarding',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const OnboardingPage(),
+    ),
+    GoRoute(
+      path: '/sign-in',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const SignInPage(),
+    ),
+    GoRoute(
+      path: '/sign-up',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const SignUpPage(),
+    ),
+    GoRoute(
+      path: '/profile',
+      parentNavigatorKey: _rootNavigatorKey,
+      builder: (context, state) => const ProfilePage(),
+    ),
   ],
 );
-

@@ -5,6 +5,7 @@ import 'router.dart';
 import '../core/theme/app_theme.dart';
 import '../features/settings/bloc/settings_cubit.dart';
 import '../features/report/flow/report_flow_bloc.dart';
+import '../features/auth/bloc/auth_bloc.dart';
 
 class InzarApp extends StatelessWidget {
   const InzarApp({super.key});
@@ -18,6 +19,9 @@ class InzarApp extends StatelessWidget {
         ),
         BlocProvider<ReportFlowBloc>.value(
           value: getIt<ReportFlowBloc>(),
+        ),
+        BlocProvider<AuthBloc>.value(
+          value: getIt<AuthBloc>(),
         ),
       ],
       child: BlocBuilder<SettingsCubit, SettingsState>(
@@ -35,4 +39,3 @@ class InzarApp extends StatelessWidget {
     );
   }
 }
-
