@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/design_system/app_button.dart';
+import '../../../core/storage/app_preferences.dart';
+import '../../../core/services/permission_service.dart';
+import '../../../app/di.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -19,6 +22,55 @@ class _OnboardingPageState extends State<OnboardingPage> {
   bool _locationAllowed = false;
   bool _cameraAllowed = false;
   bool _notificationsAllowed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkInitialPermissions();
+  }
+
+  Future<void> _checkInitialPermissions() async {
+    if (getIt.isRegistered<PermissionService>()) {
+      final service = getIt<PermissionService>();
+      final loc = await service.isLocationGranted();
+      final cam = await service.isCameraGranted();
+      final notif = await service.isNotificationGranted();
+      if (mounted) {
+        setState(() {
+          _locationAllowed = loc;
+          _cameraAllowed = cam;
+          _notificationsAllowed = notif;
+        });
+      }
+    }
+  }
+
+  Future<void> _toggleLocation() async {
+    if (getIt.isRegistered<PermissionService>()) {
+      final granted = await getIt<PermissionService>().requestLocation();
+      if (mounted) setState(() => _locationAllowed = granted);
+    } else {
+      setState(() => _locationAllowed = !_locationAllowed);
+    }
+  }
+
+  Future<void> _toggleCamera() async {
+    if (getIt.isRegistered<PermissionService>()) {
+      final granted = await getIt<PermissionService>().requestCamera();
+      if (mounted) setState(() => _cameraAllowed = granted);
+    } else {
+      setState(() => _cameraAllowed = !_cameraAllowed);
+    }
+  }
+
+  Future<void> _toggleNotifications() async {
+    if (getIt.isRegistered<PermissionService>()) {
+      final granted = await getIt<PermissionService>().requestNotification();
+      if (mounted) setState(() => _notificationsAllowed = granted);
+    } else {
+      setState(() => _notificationsAllowed = !_notificationsAllowed);
+    }
+  }
 
   @override
   void dispose() {
@@ -37,8 +89,13 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
   }
 
-  void _finishOnboarding() {
-    context.go('/map');
+  void _finishOnboarding() async {
+    if (getIt.isRegistered<IAppPreferences>()) {
+      await getIt<IAppPreferences>().setOnboardingCompleted(true);
+    }
+    if (mounted) {
+      context.go('/sign-in');
+    }
   }
 
   @override
@@ -312,11 +369,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     title: 'Location',
                     subtitle: 'Show incidents near you. Only while using the app.',
                     isAllowed: _locationAllowed,
-                    onToggle: () {
-                      setState(() {
-                        _locationAllowed = !_locationAllowed;
-                      });
-                    },
+                    onToggle: _toggleLocation,
                   ),
                   const SizedBox(height: 12),
                   _buildPermissionCard(
@@ -324,11 +377,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     title: 'Camera',
                     subtitle: 'Take photos for reports. No gallery access.',
                     isAllowed: _cameraAllowed,
-                    onToggle: () {
-                      setState(() {
-                        _cameraAllowed = !_cameraAllowed;
-                      });
-                    },
+                    onToggle: _toggleCamera,
                   ),
                   const SizedBox(height: 12),
                   _buildPermissionCard(
@@ -336,11 +385,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     title: 'Notifications',
                     subtitle: 'Nearby alerts within your radius. Optional.',
                     isAllowed: _notificationsAllowed,
-                    onToggle: () {
-                      setState(() {
-                        _notificationsAllowed = !_notificationsAllowed;
-                      });
-                    },
+                    onToggle: _toggleNotifications,
                   ),
                 ],
               ),

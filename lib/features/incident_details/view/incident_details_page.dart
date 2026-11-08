@@ -1,5 +1,13 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../app/di.dart';
+import '../../../core/config/app_config.dart';
+import '../../../core/storage/incident_media_cache.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/design_system/status_badge.dart';
@@ -7,8 +15,9 @@ import '../../../core/design_system/app_button.dart';
 import '../../../domain/entities/incident.dart';
 import '../../../domain/entities/incident_category.dart';
 import '../../../domain/entities/review_status.dart';
+import '../../../domain/repositories/incident_repository.dart';
 
-class IncidentDetailsPage extends StatelessWidget {
+class IncidentDetailsPage extends StatefulWidget {
   final Incident? incident;
 
   const IncidentDetailsPage({
@@ -17,33 +26,208 @@ class IncidentDetailsPage extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    // Fallback if accessed directly or route params
-    final item = incident ??
+  State<IncidentDetailsPage> createState() => _IncidentDetailsPageState();
+}
+
+class _IncidentDetailsPageState extends State<IncidentDetailsPage> {
+  late Incident _item;
+
+  @override
+  void initState() {
+    super.initState();
+    _item = widget.incident ??
         const Incident(
-          id: '#A-2041',
-          category: IncidentCategory.accident,
-          title: 'Two-car collision, left lane blocked',
-          description:
-              'Kashmir Hwy eastbound before the F-7 underpass. Two cars on the shoulder side, one lane closed, traffic moving single file.',
-          locationName: 'Kashmir Hwy eastbound before the F-7 underpass',
-          areaCode: 'F-7',
-          distanceKm: 1.8,
-          reportedTime: '12 min ago',
-          lastUpdateTime: '12 min ago',
+          id: '',
+          category: IncidentCategory.other,
+          title: 'Incident Details',
+          description: '',
+          locationName: 'Location',
+          areaCode: '',
+          distanceKm: 0.0,
+          reportedTime: '',
+          lastUpdateTime: '',
           status: 'Active',
-          reviewStatus: ReviewStatus.aiReviewed,
-          photoTimestamp: '14:22',
-          latitude: 33.7190,
-          longitude: 73.0680,
+          reviewStatus: ReviewStatus.published,
+          photoTimestamp: '',
+          latitude: 0.0,
+          longitude: 0.0,
         );
+
+    _loadLatestDetails();
+  }
+
+  Future<void> _loadLatestDetails() async {
+    if (_item.id.isEmpty) return;
+
+    try {
+      final res = await getIt<IIncidentRepository>().getIncidentDetails(_item.id);
+      if (res.isSuccess && res.data != null && mounted) {
+        setState(() {
+          _item = res.data!;
+        });
+      }
+    } catch (_) {}
+  }
+
+  String _formatDisplayId(String id) {
+    if (id.isEmpty) return '';
+    if (id.startsWith('#')) return id;
+    if (id.contains('-') || id.length > 12) {
+      final clean = id.replaceAll('-', '');
+      final prefix = clean.length >= 8 ? clean.substring(0, 8).toUpperCase() : clean.toUpperCase();
+      return '#$prefix';
+    }
+    return '#$id';
+  }
+
+  Widget _buildPhotoWidget(Incident item) {
+    String? photo = item.photoUrl;
+
+    if (photo == null || photo.isEmpty) {
+      photo = IncidentMediaCache.get(item.id);
+    }
+
+    if (photo != null && photo.isNotEmpty) {
+      // 1. Remote HTTP/HTTPS image
+      if (photo.startsWith('http://') || photo.startsWith('https://')) {
+        return Image.network(
+          photo,
+          fit: BoxFit.cover,
+          errorBuilder: (ctx, err, stack) => _buildFallbackPhoto(),
+          loadingBuilder: (ctx, child, progress) {
+            if (progress == null) return child;
+            return const Center(
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.primary,
+              ),
+            );
+          },
+        );
+      }
+
+      // 2. Local file on device
+      final cleanPath = photo.startsWith('file://') ? photo.replaceFirst('file://', '') : photo;
+      final file = File(cleanPath);
+      if (file.existsSync()) {
+        return Image.file(
+          file,
+          fit: BoxFit.cover,
+          errorBuilder: (ctx, err, stack) => _buildFallbackPhoto(),
+        );
+      }
+
+      // 3. Relative server path
+      if (photo.startsWith('/')) {
+        final base = AppConfig.instance.apiBaseUrl.replaceAll('/api/v1', '');
+        return Image.network(
+          '$base$photo',
+          fit: BoxFit.cover,
+          errorBuilder: (ctx, err, stack) => _buildFallbackPhoto(),
+        );
+      }
+    }
+
+    // 4. Last captured photo in this session
+    final lastCaptured = IncidentMediaCache.getLastCaptured();
+    if (lastCaptured != null && File(lastCaptured).existsSync()) {
+      return Image.file(
+        File(lastCaptured),
+        fit: BoxFit.cover,
+        errorBuilder: (ctx, err, stack) => _buildFallbackPhoto(),
+      );
+    }
+
+    return _buildFallbackPhoto();
+  }
+
+  Widget _buildFallbackPhoto() {
+    return CustomPaint(
+      painter: _DiagonalStripeLargePainter(),
+    );
+  }
+
+  Future<void> _handleDirections(BuildContext context, double lat, double lon) async {
+    if (lat == 0.0 && lon == 0.0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Location coordinates unavailable')),
+      );
+      return;
+    }
+
+    final googleMapsUrl = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lon',
+    );
+    final geoUri = Uri.parse('google.navigation:q=$lat,$lon');
+
+    try {
+      if (await canLaunchUrl(geoUri)) {
+        await launchUrl(geoUri, mode: LaunchMode.externalApplication);
+        return;
+      }
+    } catch (_) {}
+
+    try {
+      if (await canLaunchUrl(googleMapsUrl)) {
+        await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication);
+        return;
+      } else {
+        await launchUrl(googleMapsUrl, mode: LaunchMode.platformDefault);
+        return;
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open map: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleShare(BuildContext context, Incident item) async {
+    String desc = item.description.trim();
+    if (desc.isEmpty) {
+      desc = item.title;
+    }
+    if (desc.length > 150) {
+      desc = '${desc.substring(0, 147)}...';
+    }
+
+    final mapUrl = 'https://www.google.com/maps/search/?api=1&query=${item.latitude}%2C${item.longitude}';
+
+    final shareText = '''
+🚨 Inzar Incident Alert: ${item.category.displayName}
+$desc
+
+$mapUrl
+
+Reported on Inzar · Local Safety & Incident Network'''.trim();
+
+    try {
+      // ignore: deprecated_member_use
+      await Share.share(
+        shareText,
+        subject: 'Inzar Incident Alert: ${item.title}',
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to share incident: $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final item = _item;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
-            // Top App Bar: Back button + INCIDENT · #A-2041
+            // Top App Bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
@@ -53,13 +237,17 @@ class IncidentDetailsPage extends StatelessWidget {
                     onPressed: () => context.pop(),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    'INCIDENT  ·  ${item.id}',
-                    style: AppTypography.technicalTag.copyWith(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.2,
-                      fontSize: 13,
+                  Expanded(
+                    child: Text(
+                      'INCIDENT  ·  ${_formatDisplayId(item.id)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.technicalTag.copyWith(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.2,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ],
@@ -106,7 +294,7 @@ class IncidentDetailsPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
 
-                    // Badges: AI reviewed + Not independently confirmed
+                    // Badges
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -117,7 +305,7 @@ class IncidentDetailsPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 18),
 
-                    // Photo card with diagonal striped preview + caption
+                    // Photo card: network or local file image if available, else striped painter
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -131,9 +319,7 @@ class IncidentDetailsPage extends StatelessWidget {
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(16),
-                            child: CustomPaint(
-                              painter: _DiagonalStripeLargePainter(),
-                            ),
+                            child: _buildPhotoWidget(item),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -198,9 +384,9 @@ class IncidentDetailsPage extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
 
-                    // Mini map preview
+                    // Mini map preview with real street map
                     Container(
-                      height: 120,
+                      height: 140,
                       width: double.infinity,
                       decoration: BoxDecoration(
                         color: const Color(0xFF161D26),
@@ -209,37 +395,85 @@ class IncidentDetailsPage extends StatelessWidget {
                       ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(16),
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: CustomPaint(
-                                painter: _MiniMapPainter(),
-                              ),
-                            ),
-                            Center(
-                              child: Container(
-                                width: 34,
-                                height: 34,
-                                decoration: BoxDecoration(
-                                  color: item.category.color,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 2),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.5),
-                                      blurRadius: 8,
-                                    )
-                                  ],
+                        child: (item.latitude != 0.0 && item.longitude != 0.0)
+                            ? FlutterMap(
+                                options: MapOptions(
+                                  initialCenter: LatLng(item.latitude, item.longitude),
+                                  initialZoom: 14.2,
+                                  interactionOptions: const InteractionOptions(
+                                    flags: InteractiveFlag.none,
+                                  ),
                                 ),
-                                child: Icon(
-                                  item.category.iconData,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
+                                children: [
+                                  TileLayer(
+                                    urlTemplate:
+                                        AppConfig.instance.getMapTileUrl(isDark: true),
+                                    userAgentPackageName: 'com.inzar.app',
+                                  ),
+                                  MarkerLayer(
+                                    markers: [
+                                      Marker(
+                                        point: LatLng(item.latitude, item.longitude),
+                                        width: 38,
+                                        height: 38,
+                                        child: Center(
+                                          child: Container(
+                                            width: 34,
+                                            height: 34,
+                                            decoration: BoxDecoration(
+                                              color: item.category.color,
+                                              shape: BoxShape.circle,
+                                              border: Border.all(color: Colors.white, width: 2),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withValues(alpha: 0.5),
+                                                  blurRadius: 8,
+                                                )
+                                              ],
+                                            ),
+                                            child: Icon(
+                                              item.category.iconData,
+                                              color: Colors.white,
+                                              size: 18,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              )
+                            : Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: CustomPaint(
+                                      painter: _MiniMapPainter(),
+                                    ),
+                                  ),
+                                  Center(
+                                    child: Container(
+                                      width: 34,
+                                      height: 34,
+                                      decoration: BoxDecoration(
+                                        color: item.category.color,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 2),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withValues(alpha: 0.5),
+                                            blurRadius: 8,
+                                          )
+                                        ],
+                                      ),
+                                      child: Icon(
+                                        item.category.iconData,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -252,11 +486,7 @@ class IncidentDetailsPage extends StatelessWidget {
                             label: 'Directions',
                             variant: AppButtonVariant.secondaryLight,
                             height: 48,
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Opening directions in maps...')),
-                              );
-                            },
+                            onPressed: () => _handleDirections(context, item.latitude, item.longitude),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -265,11 +495,7 @@ class IncidentDetailsPage extends StatelessWidget {
                             label: 'Share',
                             variant: AppButtonVariant.secondaryDark,
                             height: 48,
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Incident link copied to clipboard')),
-                              );
-                            },
+                            onPressed: () => _handleShare(context, item),
                           ),
                         ),
                       ],
@@ -281,11 +507,7 @@ class IncidentDetailsPage extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         GestureDetector(
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Feedback form opened')),
-                            );
-                          },
+                          onTap: () => _showFlagDialog(context, item.id),
                           child: Text(
                             'Report incorrect info',
                             style: AppTypography.bodySmall.copyWith(
@@ -295,11 +517,7 @@ class IncidentDetailsPage extends StatelessWidget {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Incident marked as resolved')),
-                            );
-                          },
+                          onTap: () => _handleResolve(context, item.id),
                           child: Text(
                             'Mark resolved',
                             style: AppTypography.bodySmall.copyWith(
@@ -328,6 +546,81 @@ class IncidentDetailsPage extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _showFlagDialog(BuildContext context, String incidentId) {
+    String selectedType = 'incorrect';
+    final noteController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.surfaceElevated,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text('Flag Incident', style: AppTypography.titleMedium),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                initialValue: selectedType,
+                dropdownColor: AppColors.surfaceElevated,
+                items: const [
+                  DropdownMenuItem(value: 'incorrect', child: Text('Incorrect information', style: TextStyle(color: Colors.white))),
+                  DropdownMenuItem(value: 'abuse', child: Text('Spam or inappropriate', style: TextStyle(color: Colors.white))),
+                  DropdownMenuItem(value: 'resolved', child: Text('Incident already cleared', style: TextStyle(color: Colors.white))),
+                ],
+                onChanged: (val) {
+                  if (val != null) setDialogState(() => selectedType = val);
+                },
+                decoration: const InputDecoration(labelText: 'Feedback Type'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: noteController,
+                decoration: const InputDecoration(hintText: 'Optional details...'),
+                maxLines: 2,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(dialogCtx).pop();
+                final res = await getIt<IIncidentRepository>().flagIncident(
+                  id: incidentId,
+                  type: selectedType,
+                  note: noteController.text.trim(),
+                );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(res.isSuccess ? 'Feedback submitted. Thank you.' : (res.failure?.message ?? 'Failed to submit feedback')),
+                    ),
+                  );
+                }
+              },
+              child: const Text('Submit', style: TextStyle(color: AppColors.primary)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleResolve(BuildContext context, String incidentId) async {
+    final res = await getIt<IIncidentRepository>().resolveIncident(incidentId);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res.isSuccess ? 'Incident marked as resolved' : (res.failure?.message ?? 'Action failed')),
+        ),
+      );
+    }
   }
 
   Widget _buildMetaItem(String label, String value) {

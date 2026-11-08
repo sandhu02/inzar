@@ -1,6 +1,8 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../app/di.dart';
+import '../../../core/services/permission_service.dart';
 
 class SettingsState extends Equatable {
   final ThemeMode themeMode;
@@ -69,7 +71,26 @@ class SettingsState extends Equatable {
 }
 
 class SettingsCubit extends Cubit<SettingsState> {
-  SettingsCubit() : super(const SettingsState());
+  final PermissionService? permissionService;
+
+  SettingsCubit({this.permissionService}) : super(const SettingsState()) {
+    refreshPermissions();
+  }
+
+  Future<void> refreshPermissions() async {
+    final service = permissionService ??
+        (getIt.isRegistered<PermissionService>() ? getIt<PermissionService>() : null);
+    if (service != null) {
+      final loc = await service.isLocationGranted();
+      final cam = await service.isCameraGranted();
+      final notif = await service.isNotificationGranted();
+      emit(state.copyWith(
+        locationPermissionGranted: loc,
+        cameraPermissionGranted: cam,
+        notificationPermissionGranted: notif,
+      ));
+    }
+  }
 
   void updateTheme(ThemeMode mode) => emit(state.copyWith(themeMode: mode));
   void updateDefaultRadius(int km) => emit(state.copyWith(defaultRadiusKm: km));
@@ -78,10 +99,37 @@ class SettingsCubit extends Cubit<SettingsState> {
   void toggleAlerts(bool enabled) => emit(state.copyWith(enableNearbyAlerts: enabled));
   void updateAlertRadius(int km) => emit(state.copyWith(alertRadiusKm: km));
   void updateAlertCategories(String cats) => emit(state.copyWith(alertCategories: cats));
-  void toggleLocationPermission() =>
+
+  Future<void> toggleLocationPermission() async {
+    final service = permissionService ??
+        (getIt.isRegistered<PermissionService>() ? getIt<PermissionService>() : null);
+    if (service != null) {
+      final granted = await service.requestLocation();
+      emit(state.copyWith(locationPermissionGranted: granted));
+    } else {
       emit(state.copyWith(locationPermissionGranted: !state.locationPermissionGranted));
-  void toggleCameraPermission() =>
+    }
+  }
+
+  Future<void> toggleCameraPermission() async {
+    final service = permissionService ??
+        (getIt.isRegistered<PermissionService>() ? getIt<PermissionService>() : null);
+    if (service != null) {
+      final granted = await service.requestCamera();
+      emit(state.copyWith(cameraPermissionGranted: granted));
+    } else {
       emit(state.copyWith(cameraPermissionGranted: !state.cameraPermissionGranted));
-  void toggleNotificationPermission() =>
+    }
+  }
+
+  Future<void> toggleNotificationPermission() async {
+    final service = permissionService ??
+        (getIt.isRegistered<PermissionService>() ? getIt<PermissionService>() : null);
+    if (service != null) {
+      final granted = await service.requestNotification();
+      emit(state.copyWith(notificationPermissionGranted: granted));
+    } else {
       emit(state.copyWith(notificationPermissionGranted: !state.notificationPermissionGranted));
+    }
+  }
 }

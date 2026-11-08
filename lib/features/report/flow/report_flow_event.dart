@@ -37,10 +37,18 @@ class DescriptionChanged extends ReportFlowEvent {
 class LocationAdjusted extends ReportFlowEvent {
   final String locationName;
   final String shownPrecision;
-  const LocationAdjusted({required this.locationName, required this.shownPrecision});
+  final double? latitude;
+  final double? longitude;
+
+  const LocationAdjusted({
+    required this.locationName,
+    required this.shownPrecision,
+    this.latitude,
+    this.longitude,
+  });
 
   @override
-  List<Object?> get props => [locationName, shownPrecision];
+  List<Object?> get props => [locationName, shownPrecision, latitude, longitude];
 }
 
 class ReportSubmitted extends ReportFlowEvent {
@@ -54,4 +62,3 @@ class RetakePhotoRequested extends ReportFlowEvent {
 class ResetReportFlow extends ReportFlowEvent {
   const ResetReportFlow();
 }
-

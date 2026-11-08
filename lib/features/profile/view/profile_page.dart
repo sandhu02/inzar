@@ -24,11 +24,11 @@ class ProfilePage extends StatelessWidget {
           },
           builder: (context, state) {
             final user = state.user;
-            final name = user?.name ?? 'Ayesha Khan';
-            final email = user?.email ?? 'ayesha@example.com';
-            final initials = user?.initials ?? 'AK';
-            final signInMethod = user?.signInMethod ?? 'Google';
-            final reportCount = user?.reportCount ?? 12;
+            final name = user?.name ?? 'User Profile';
+            final email = user?.email ?? '';
+            final initials = user?.initials ?? 'U';
+            final signInMethod = user?.signInMethod ?? 'Email';
+            final reportCount = user?.reportCount ?? 0;
 
             return Column(
               children: [

@@ -159,9 +159,17 @@ lib/
   - Stateful 3-tab navigation (Map, Activity, Settings).
   - Active orange line indicator above selected tab (matching Page 6).
   - Bottom navigation bar wrapped in `SafeArea(top: false)` with background color extending edge-to-edge, preventing any obstruction by Android 3-button or gesture system navigation.
+- [x] **First-Launch Screen Sequence:**
+  - Order: **Onboarding screens (`/onboarding`) -> Sign In / Sign Up (`/sign-in`, `/sign-up`) -> Home Map (`/map`)**.
+  - Persistent onboarding flag via `IAppPreferences` / `SecureAppPreferences` (`flutter_secure_storage`).
+  - Returning authenticated users navigate directly to `/map`.
+  - Returning unauthenticated users navigate to `/sign-in`.
+  - Onboarding allows "Skip" or completion through step 3, both safely progressing to `/sign-in`.
+  - Sign-in supports email/password, "Continue with Google", "Continue as Guest", and seamless switching to `/sign-up`.
+  - All authentications navigate directly to `/map`.
 - [x] **Testing & Quality Assurance:**
   - `flutter analyze`: 0 issues found.
-  - `flutter test`: 13 tests passing (AuthBloc, MapBloc, ActivityBloc, ReportFlowBloc, InzarApp smoke test).
+  - `flutter test`: 22 tests passing (AuthBloc, MapBloc, ActivityBloc, ReportFlowBloc, BackendIntegration, InzarApp flow test).
 
 ---
 

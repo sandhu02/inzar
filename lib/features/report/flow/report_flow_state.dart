@@ -20,17 +20,21 @@ class ReportFlowState extends Equatable {
   final String description;
   final String locationName;
   final String shownPrecision;
+  final double latitude;
+  final double longitude;
   final bool isSubmitting;
   final SubmissionStep currentStep;
   final SubmissionOutcome outcome;
 
   const ReportFlowState({
     this.photoPath,
-    this.photoTimestamp = '14:22',
+    this.photoTimestamp = '',
     this.selectedCategory = IncidentCategory.fire,
-    this.description = 'Brush fire on the slope above Trail 4, smoke drifting toward the road. No people nearby.',
-    this.locationName = 'Near Trail 4, Margalla Rd',
+    this.description = '',
+    this.locationName = 'Current Location',
     this.shownPrecision = 'Shown publicly at ~200 m',
+    this.latitude = 0.0,
+    this.longitude = 0.0,
     this.isSubmitting = false,
     this.currentStep = SubmissionStep.checkingReport,
     this.outcome = SubmissionOutcome.published,
@@ -43,6 +47,8 @@ class ReportFlowState extends Equatable {
     String? description,
     String? locationName,
     String? shownPrecision,
+    double? latitude,
+    double? longitude,
     bool? isSubmitting,
     SubmissionStep? currentStep,
     SubmissionOutcome? outcome,
@@ -54,6 +60,8 @@ class ReportFlowState extends Equatable {
       description: description ?? this.description,
       locationName: locationName ?? this.locationName,
       shownPrecision: shownPrecision ?? this.shownPrecision,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       currentStep: currentStep ?? this.currentStep,
       outcome: outcome ?? this.outcome,
@@ -68,6 +76,8 @@ class ReportFlowState extends Equatable {
         description,
         locationName,
         shownPrecision,
+        latitude,
+        longitude,
         isSubmitting,
         currentStep,
         outcome,

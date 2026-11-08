@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/design_system/category_chip.dart';
@@ -25,6 +26,52 @@ class _FormPageState extends State<FormPage> {
     super.initState();
     final currentDesc = context.read<ReportFlowBloc>().state.description;
     _descController = TextEditingController(text: currentDesc);
+    _refreshDeviceLocation();
+  }
+
+  Future<void> _refreshDeviceLocation() async {
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+
+      final lastPos = await Geolocator.getLastKnownPosition();
+      if (lastPos != null && mounted) {
+        context.read<ReportFlowBloc>().add(
+              LocationAdjusted(
+                locationName: 'Current Location',
+                shownPrecision: 'GPS Accuracy ~${lastPos.accuracy.toStringAsFixed(0)}m',
+                latitude: lastPos.latitude,
+                longitude: lastPos.longitude,
+              ),
+            );
+      }
+
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 4),
+        ),
+      );
+      if (mounted) {
+        context.read<ReportFlowBloc>().add(
+              LocationAdjusted(
+                locationName: 'Current Location',
+                shownPrecision: 'GPS Accuracy ~${pos.accuracy.toStringAsFixed(0)}m',
+                latitude: pos.latitude,
+                longitude: pos.longitude,
+              ),
+            );
+      }
+    } catch (_) {}
   }
 
   @override

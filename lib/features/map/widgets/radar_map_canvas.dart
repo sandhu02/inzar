@@ -11,6 +11,7 @@ class RadarMapCanvas extends StatelessWidget {
   final int radiusKm;
   final ValueChanged<Incident> onIncidentTap;
   final VoidCallback onRecenterTap;
+  final bool showBackgroundGrid;
 
   const RadarMapCanvas({
     super.key,
@@ -19,6 +20,7 @@ class RadarMapCanvas extends StatelessWidget {
     required this.radiusKm,
     required this.onIncidentTap,
     required this.onRecenterTap,
+    this.showBackgroundGrid = true,
   });
 
   @override
@@ -30,13 +32,14 @@ class RadarMapCanvas extends StatelessWidget {
 
         return Stack(
           children: [
-            // Custom Painter for Map background, roads, radar circles
+            // Custom Painter for Map background or Radar circles
             Positioned.fill(
               child: CustomPaint(
                 painter: _MapBackgroundPainter(
                   center: center,
                   radarRadius: radarRadius,
                   radiusKm: radiusKm,
+                  drawBackground: showBackgroundGrid,
                 ),
               ),
             ),
@@ -60,36 +63,37 @@ class RadarMapCanvas extends StatelessWidget {
               );
             }),
 
-            // Cluster marker "4" on top-right of radar circle as in screenshot
-            Positioned(
-              left: center.dx + radarRadius * 0.72 - 18,
-              top: center.dy - radarRadius * 0.72 - 18,
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.5),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    )
-                  ],
-                ),
-                child: const Center(
-                  child: Text(
-                    '4',
-                    style: TextStyle(
-                      color: Color(0xFF101318),
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
+            // Cluster marker if clusters present
+            if (incidents.any((i) => i.isCluster))
+              Positioned(
+                left: center.dx + radarRadius * 0.72 - 18,
+                top: center.dy - radarRadius * 0.72 - 18,
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      )
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${incidents.firstWhere((i) => i.isCluster).clusterCount}',
+                      style: const TextStyle(
+                        color: Color(0xFF101318),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
 
             // Recenter floating button on bottom-right of map
             Positioned(
@@ -130,11 +134,23 @@ class RadarMapCanvas extends StatelessWidget {
   }
 
   Offset _getIncidentScreenOffset(Incident incident, Offset center, double radarRadius) {
-    // Relative positioning matching Screenshot 1:
-    // - Flame marker: upper left
-    // - Accident marker: upper right (selected)
-    // - Road block (menu): lower left
-    // - Flooding: lower right
+    if (incident.latitude != 0.0 && incident.longitude != 0.0) {
+      // Relative offset based on GPS delta from default center (Islamabad Margalla)
+      final dLat = incident.latitude - 33.7294;
+      final dLon = incident.longitude - 73.0560;
+
+      if (dLat != 0.0 || dLon != 0.0) {
+        final scale = radarRadius / (0.015 * math.max(1, radiusKm));
+        final dx = center.dx + (dLon * scale * 100);
+        final dy = center.dy - (dLat * scale * 100);
+
+        // Clamp inside visible bounds
+        final clampedX = dx.clamp(center.dx - radarRadius * 0.9, center.dx + radarRadius * 0.9);
+        final clampedY = dy.clamp(center.dy - radarRadius * 0.9, center.dy + radarRadius * 0.9);
+        return Offset(clampedX, clampedY);
+      }
+    }
+
     switch (incident.category) {
       case IncidentCategory.fire:
         return Offset(center.dx - radarRadius * 0.48, center.dy - radarRadius * 0.45);
@@ -156,75 +172,53 @@ class _MapBackgroundPainter extends CustomPainter {
   final Offset center;
   final double radarRadius;
   final int radiusKm;
+  final bool drawBackground;
 
   _MapBackgroundPainter({
     required this.center,
     required this.radarRadius,
     required this.radiusKm,
+    this.drawBackground = true,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    final bgPaint = Paint()..color = AppColors.background;
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
+    if (drawBackground) {
+      final bgPaint = Paint()..color = AppColors.background;
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
 
-    // Draw stylized road networks (lines crisscrossing like Islamabad sector grids)
-    final highwayPaint = Paint()
-      ..color = const Color(0xFF2A3442).withValues(alpha: 0.7)
-      ..strokeWidth = 3.5
-      ..style = PaintingStyle.stroke;
+      // Roads
+      final highwayPaint = Paint()
+        ..color = const Color(0xFF2A3442).withValues(alpha: 0.7)
+        ..strokeWidth = 3.5
+        ..style = PaintingStyle.stroke;
 
-    final roadPaint = Paint()
-      ..color = const Color(0xFF1F2732).withValues(alpha: 0.8)
-      ..strokeWidth = 2.0
-      ..style = PaintingStyle.stroke;
+      final roadPaint = Paint()
+        ..color = const Color(0xFF1F2732).withValues(alpha: 0.8)
+        ..strokeWidth = 2.0
+        ..style = PaintingStyle.stroke;
 
-    final minorRoadPaint = Paint()
-      ..color = const Color(0xFF18202A)
-      ..strokeWidth = 1.2
-      ..style = PaintingStyle.stroke;
+      final minorRoadPaint = Paint()
+        ..color = const Color(0xFF18202A)
+        ..strokeWidth = 1.2
+        ..style = PaintingStyle.stroke;
 
-    // Diagonal arterial roads
-    canvas.drawLine(
-      Offset(0, size.height * 0.25),
-      Offset(size.width, size.height * 0.05),
-      highwayPaint,
-    );
-    canvas.drawLine(
-      Offset(-50, size.height * 0.65),
-      Offset(size.width + 50, size.height * 0.20),
-      highwayPaint,
-    );
-    canvas.drawLine(
-      Offset(size.width * 0.15, 0),
-      Offset(size.width * 0.85, size.height),
-      highwayPaint,
-    );
-    canvas.drawLine(
-      Offset(size.width * 0.70, 0),
-      Offset(size.width * 0.30, size.height),
-      roadPaint,
-    );
-    canvas.drawLine(
-      Offset(0, size.height * 0.45),
-      Offset(size.width, size.height * 0.48),
-      minorRoadPaint,
-    );
-    canvas.drawLine(
-      Offset(0, size.height * 0.78),
-      Offset(size.width, size.height * 0.72),
-      minorRoadPaint,
-    );
+      canvas.drawLine(Offset(0, size.height * 0.25), Offset(size.width, size.height * 0.05), highwayPaint);
+      canvas.drawLine(Offset(-50, size.height * 0.65), Offset(size.width + 50, size.height * 0.20), highwayPaint);
+      canvas.drawLine(Offset(size.width * 0.15, 0), Offset(size.width * 0.85, size.height), highwayPaint);
+      canvas.drawLine(Offset(size.width * 0.70, 0), Offset(size.width * 0.30, size.height), roadPaint);
+      canvas.drawLine(Offset(0, size.height * 0.45), Offset(size.width, size.height * 0.48), minorRoadPaint);
+      canvas.drawLine(Offset(0, size.height * 0.78), Offset(size.width, size.height * 0.72), minorRoadPaint);
 
-    // Subtle water shape in bottom background
-    final waterPaint = Paint()..color = const Color(0xFF0F1E2A);
-    final waterPath = Path()
-      ..moveTo(0, size.height * 0.50)
-      ..cubicTo(size.width * 0.35, size.height * 0.48, size.width * 0.7, size.height * 0.55, size.width, size.height * 0.52)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-    canvas.drawPath(waterPath, waterPaint);
+      final waterPaint = Paint()..color = const Color(0xFF0F1E2A);
+      final waterPath = Path()
+        ..moveTo(0, size.height * 0.50)
+        ..cubicTo(size.width * 0.35, size.height * 0.48, size.width * 0.7, size.height * 0.55, size.width, size.height * 0.52)
+        ..lineTo(size.width, size.height)
+        ..lineTo(0, size.height)
+        ..close();
+      canvas.drawPath(waterPath, waterPaint);
+    }
 
     // Dashed Radar Circle for current radius range
     final radarBorderPaint = Paint()
@@ -232,7 +226,6 @@ class _MapBackgroundPainter extends CustomPainter {
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
-    // Draw dashed circle
     const dashCount = 48;
     const sweepAngle = (2 * math.pi) / dashCount;
     for (int i = 0; i < dashCount; i += 2) {
@@ -273,6 +266,7 @@ class _MapBackgroundPainter extends CustomPainter {
   bool shouldRepaint(covariant _MapBackgroundPainter oldDelegate) {
     return oldDelegate.center != center ||
         oldDelegate.radarRadius != radarRadius ||
-        oldDelegate.radiusKm != radiusKm;
+        oldDelegate.radiusKm != radiusKm ||
+        oldDelegate.drawBackground != drawBackground;
   }
 }

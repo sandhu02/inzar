@@ -5,6 +5,7 @@ import 'review_status.dart';
 class Incident extends Equatable {
   final String id;
   final IncidentCategory category;
+  final String? categoryId;
   final String title;
   final String description;
   final String locationName;
@@ -19,14 +20,21 @@ class Incident extends Equatable {
   final double longitude;
   final bool isSelected;
   final String? photoUrl;
+  final String? verificationLabel;
+  final String? urgency;
+  final int? ageMinutes;
+  final double? distanceM;
+  final bool isCluster;
+  final int clusterCount;
 
   const Incident({
     required this.id,
     required this.category,
+    this.categoryId,
     required this.title,
-    required this.description,
+    this.description = '',
     required this.locationName,
-    required this.areaCode,
+    this.areaCode = '',
     required this.distanceKm,
     required this.reportedTime,
     required this.lastUpdateTime,
@@ -37,11 +45,18 @@ class Incident extends Equatable {
     required this.longitude,
     this.isSelected = false,
     this.photoUrl,
+    this.verificationLabel,
+    this.urgency,
+    this.ageMinutes,
+    this.distanceM,
+    this.isCluster = false,
+    this.clusterCount = 0,
   });
 
   Incident copyWith({
     String? id,
     IncidentCategory? category,
+    String? categoryId,
     String? title,
     String? description,
     String? locationName,
@@ -56,10 +71,17 @@ class Incident extends Equatable {
     double? longitude,
     bool? isSelected,
     String? photoUrl,
+    String? verificationLabel,
+    String? urgency,
+    int? ageMinutes,
+    double? distanceM,
+    bool? isCluster,
+    int? clusterCount,
   }) {
     return Incident(
       id: id ?? this.id,
       category: category ?? this.category,
+      categoryId: categoryId ?? this.categoryId,
       title: title ?? this.title,
       description: description ?? this.description,
       locationName: locationName ?? this.locationName,
@@ -74,6 +96,12 @@ class Incident extends Equatable {
       longitude: longitude ?? this.longitude,
       isSelected: isSelected ?? this.isSelected,
       photoUrl: photoUrl ?? this.photoUrl,
+      verificationLabel: verificationLabel ?? this.verificationLabel,
+      urgency: urgency ?? this.urgency,
+      ageMinutes: ageMinutes ?? this.ageMinutes,
+      distanceM: distanceM ?? this.distanceM,
+      isCluster: isCluster ?? this.isCluster,
+      clusterCount: clusterCount ?? this.clusterCount,
     );
   }
 
@@ -81,6 +109,7 @@ class Incident extends Equatable {
   List<Object?> get props => [
         id,
         category,
+        categoryId,
         title,
         description,
         locationName,
@@ -95,6 +124,11 @@ class Incident extends Equatable {
         longitude,
         isSelected,
         photoUrl,
+        verificationLabel,
+        urgency,
+        ageMinutes,
+        distanceM,
+        isCluster,
+        clusterCount,
       ];
 }
-

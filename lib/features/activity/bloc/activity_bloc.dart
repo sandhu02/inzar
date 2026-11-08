@@ -1,18 +1,27 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'activity_event.dart';
 import 'activity_state.dart';
-import '../../../core/mock/mock_incidents.dart';
 import '../../../domain/entities/incident.dart';
 import '../../../domain/entities/review_status.dart';
+import '../../../domain/repositories/incident_repository.dart';
 
 class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
-  ActivityBloc() : super(const ActivityState()) {
+  final IIncidentRepository? incidentRepository;
+
+  ActivityBloc({this.incidentRepository}) : super(const ActivityState()) {
     on<ActivityInitialized>(_onInitialized);
     on<ActivityFilterChanged>(_onFilterChanged);
   }
 
-  void _onInitialized(ActivityInitialized event, Emitter<ActivityState> emit) {
-    final list = MockIncidents.userActivityReports;
+  Future<void> _onInitialized(ActivityInitialized event, Emitter<ActivityState> emit) async {
+    List<Incident> list = [];
+    if (incidentRepository != null) {
+      final res = await incidentRepository!.getMyReports();
+      if (res.isSuccess && res.data != null) {
+        list = res.data!;
+      }
+    }
+
     emit(state.copyWith(
       allReports: list,
       filteredReports: list,
@@ -42,4 +51,3 @@ class ActivityBloc extends Bloc<ActivityEvent, ActivityState> {
     ));
   }
 }
-

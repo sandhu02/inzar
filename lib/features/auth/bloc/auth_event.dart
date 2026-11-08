@@ -36,8 +36,22 @@ class SignUpSubmitted extends AuthEvent {
   List<Object?> get props => [name, email, password];
 }
 
+class ResendVerificationRequested extends AuthEvent {
+  final String email;
+
+  const ResendVerificationRequested({required this.email});
+
+  @override
+  List<Object?> get props => [email];
+}
+
 class GoogleSignInRequested extends AuthEvent {
-  const GoogleSignInRequested();
+  final String? idToken;
+
+  const GoogleSignInRequested({this.idToken});
+
+  @override
+  List<Object?> get props => [idToken];
 }
 
 class SignOutRequested extends AuthEvent {
@@ -47,4 +61,3 @@ class SignOutRequested extends AuthEvent {
 class DeleteAccountRequested extends AuthEvent {
   const DeleteAccountRequested();
 }
-

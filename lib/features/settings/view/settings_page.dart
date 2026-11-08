@@ -7,9 +7,14 @@ import '../bloc/settings_cubit.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_state.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -31,7 +36,7 @@ class SettingsPage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Profile Card (matching Page 11 screenshot)
+              // Profile Card
               BlocBuilder<AuthBloc, AuthState>(
                 builder: (context, authState) {
                   final user = authState.user;
@@ -60,7 +65,6 @@ class SettingsPage extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            // Circular initials avatar
                             Container(
                               width: 48,
                               height: 48,
@@ -80,8 +84,6 @@ class SettingsPage extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 14),
-
-                            // Name & Email
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,14 +100,11 @@ class SettingsPage extends StatelessWidget {
                                     email,
                                     style: AppTypography.bodySmall.copyWith(
                                       color: AppColors.textSecondary,
-                                      fontSize: 13,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-
-                            // Chevron right
                             const Icon(
                               Icons.arrow_forward_ios_rounded,
                               size: 16,
@@ -171,24 +170,12 @@ class SettingsPage extends StatelessWidget {
                   final cubit = context.read<SettingsCubit>();
                   return _buildCard(
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('Nearby alerts', style: AppTypography.body),
-                            Switch(
-                              value: state.enableNearbyAlerts,
-                              activeTrackColor: AppColors.primary,
-                              thumbColor: WidgetStateProperty.resolveWith<Color>(
-                                (states) => states.contains(WidgetState.selected)
-                                    ? Colors.white
-                                    : AppColors.textMuted,
-                              ),
-                              onChanged: cubit.toggleAlerts,
-                            ),
-                          ],
-                        ),
+                      _buildSwitchItem(
+                        label: 'Nearby alerts',
+                        value: state.enableNearbyAlerts,
+                        onChanged: (val) {
+                          cubit.toggleAlerts(val);
+                        },
                       ),
                       const Divider(color: AppColors.border, height: 1),
                       _buildRowItem(
@@ -260,16 +247,35 @@ class SettingsPage extends StatelessWidget {
                   _buildRowItem(
                     label: 'Privacy policy',
                     value: '',
+                    showChevron: true,
                     onTap: () {
-                      _showPolicyDialog(context, 'Privacy Policy', 'Inzar is designed with privacy by default. We do not track personal identities or publish precise personal coordinates. All reports undergo coordinate fuzzing (~200m).');
+                      _showPolicyDialog(
+                        context,
+                        'Privacy Policy',
+                        'Inzar is designed privacy-first. We fuzz reporter coordinates by ~200 m and never display reporter identities publicly.',
+                      );
                     },
                   ),
                   const Divider(color: AppColors.border, height: 1),
                   _buildRowItem(
                     label: 'How location is handled',
                     value: '',
+                    showChevron: true,
                     onTap: () {
-                      _showPolicyDialog(context, 'How Location is Handled', 'When you report an incident, your device location is obtained locally to anchor the report. Before publication, coordinates are fuzzed to approximately 200m to protect reporter privacy.');
+                      _showPolicyDialog(
+                        context,
+                        'How Location is Handled',
+                        'Exact GPS locations are never published. The backend deterministically offsets coordinates within a ~200 m fuzzing radius.',
+                      );
+                    },
+                  ),
+                  const Divider(color: AppColors.border, height: 1),
+                  _buildRowItem(
+                    label: 'App introduction tour',
+                    value: '',
+                    showChevron: true,
+                    onTap: () {
+                      context.push('/onboarding');
                     },
                   ),
                 ],
@@ -287,9 +293,7 @@ class SettingsPage extends StatelessWidget {
                   final cubit = context.read<SettingsCubit>();
                   final themeLabel = state.themeMode == ThemeMode.dark
                       ? 'Dark'
-                      : state.themeMode == ThemeMode.light
-                          ? 'Light'
-                          : 'System';
+                      : (state.themeMode == ThemeMode.light ? 'Light' : 'System');
 
                   return _buildCard(
                     children: [
@@ -304,17 +308,6 @@ class SettingsPage extends StatelessWidget {
                   );
                 },
               ),
-              const SizedBox(height: 32),
-
-              // Onboarding shortcut for testing/reviewing
-              Center(
-                child: TextButton.icon(
-                  onPressed: () => context.push('/onboarding'),
-                  icon: const Icon(Icons.help_outline_rounded, size: 16, color: AppColors.textSecondary),
-                  label: Text('View Onboarding Tour', style: AppTypography.bodySmall),
-                ),
-              ),
-              const SizedBox(height: 12),
             ],
           ),
         ),
@@ -329,43 +322,91 @@ class SettingsPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border, width: 1),
       ),
-      child: Column(children: children),
+      child: Column(
+        children: children,
+      ),
     );
   }
 
   Widget _buildRowItem({
     required String label,
     required String value,
-    Color? valueColor,
+    Color valueColor = AppColors.textSecondary,
+    bool showChevron = false,
     VoidCallback? onTap,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: AppTypography.body.copyWith(
-                color: AppColors.textPrimary,
-                fontSize: 14,
-              ),
-            ),
-            if (value.isNotEmpty)
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
               Text(
-                value,
-                style: AppTypography.bodySecondary.copyWith(
-                  color: valueColor ?? AppColors.textSecondary,
-                  fontSize: 14,
+                label,
+                style: AppTypography.body.copyWith(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 15,
                 ),
-              )
-            else
-              const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textMuted),
-          ],
+              ),
+              Row(
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 160),
+                    child: Text(
+                      value,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: valueColor,
+                        fontSize: 14,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (showChevron || onTap != null) ...[
+                    const SizedBox(width: 8),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 14,
+                      color: AppColors.textMuted,
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSwitchItem({
+    required String label,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: AppTypography.body.copyWith(
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+            ),
+          ),
+          Switch(
+            value: value,
+            activeTrackColor: AppColors.primary,
+            inactiveThumbColor: AppColors.textMuted,
+            inactiveTrackColor: AppColors.surfaceElevated,
+            onChanged: onChanged,
+          ),
+        ],
       ),
     );
   }
@@ -395,7 +436,7 @@ class SettingsPage extends StatelessWidget {
       builder: (ctx) => SimpleDialog(
         backgroundColor: AppColors.surfaceElevated,
         title: Text('Alert radius', style: AppTypography.titleMedium),
-        children: [1, 5, 10, 25].map((km) {
+        children: [1, 3, 5, 10, 25, 50].map((km) {
           return SimpleDialogOption(
             onPressed: () {
               cubit.updateAlertRadius(km);

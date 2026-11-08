@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../app/di.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../bloc/map_bloc.dart';
 import '../bloc/map_event.dart';
 import '../bloc/map_state.dart';
-import '../widgets/radar_map_canvas.dart';
+import '../widgets/inzar_map.dart';
 import '../widgets/radius_bar.dart';
 import '../widgets/preview_sheet.dart';
 
@@ -16,7 +17,7 @@ class MapPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => MapBloc()..add(const MapInitialized()),
+      create: (context) => getIt<MapBloc>()..add(const MapInitialized()),
       child: const _MapView(),
     );
   }
@@ -35,9 +36,9 @@ class _MapView extends StatelessWidget {
           builder: (context, state) {
             return Stack(
               children: [
-                // 1. Radar Map Background & Canvas
+                // 1. Live Interactive Map (Streets, Roads, Neighborhoods)
                 Positioned.fill(
-                  child: RadarMapCanvas(
+                  child: InzarMap(
                     incidents: state.filteredIncidents,
                     selectedIncident: state.selectedIncident,
                     radiusKm: state.selectedRadiusKm,
@@ -46,6 +47,14 @@ class _MapView extends StatelessWidget {
                     },
                     onRecenterTap: () {
                       context.read<MapBloc>().add(const MapRecenterPressed());
+                    },
+                    onLocationDetermined: (pos) {
+                      context.read<MapBloc>().add(
+                            MapUserLocationUpdated(
+                              latitude: pos.latitude,
+                              longitude: pos.longitude,
+                            ),
+                          );
                     },
                   ),
                 ),
@@ -111,7 +120,6 @@ class _MapView extends StatelessWidget {
         children: [
           Row(
             children: [
-              // Orange Diamond Logo Glyph
               Transform.rotate(
                 angle: 0.785398, // 45 deg
                 child: Container(
@@ -146,8 +154,6 @@ class _MapView extends StatelessWidget {
               ),
             ],
           ),
-
-          // Search button
           Container(
             width: 40,
             height: 40,

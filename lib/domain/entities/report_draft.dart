@@ -13,13 +13,13 @@ class ReportDraft extends Equatable {
 
   const ReportDraft({
     this.photoPath,
-    this.photoTimestamp = '14:22',
+    this.photoTimestamp = '',
     this.category = IncidentCategory.fire,
-    this.description = 'Brush fire on the slope above Trail 4, smoke drifting toward the road. No people nearby.',
-    this.locationName = 'Near Trail 4, Margalla Rd',
+    this.description = '',
+    this.locationName = 'Current Location',
     this.shownPrecision = 'Shown publicly at ~200 m',
-    this.latitude = 33.7294,
-    this.longitude = 73.0754,
+    this.latitude = 0.0,
+    this.longitude = 0.0,
   });
 
   ReportDraft copyWith({

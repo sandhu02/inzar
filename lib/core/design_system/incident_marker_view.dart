@@ -46,9 +46,11 @@ class IncidentMarkerView extends StatelessWidget {
         break;
     }
 
+    final innerSize = isSelected ? (size - 10.0).clamp(16.0, 100.0) : size;
+
     Widget content = Container(
-      width: size,
-      height: size,
+      width: innerSize,
+      height: innerSize,
       decoration: BoxDecoration(
         color: bg,
         shape: BoxShape.circle,
@@ -63,7 +65,7 @@ class IncidentMarkerView extends StatelessWidget {
       child: Center(
         child: Icon(
           category.iconData,
-          size: size * 0.52,
+          size: innerSize * 0.52,
           color: iconColor,
         ),
       ),
@@ -71,7 +73,9 @@ class IncidentMarkerView extends StatelessWidget {
 
     if (isSelected) {
       return Container(
-        padding: const EdgeInsets.all(4),
+        width: size,
+        height: size,
+        alignment: Alignment.center,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(color: Colors.white, width: 2.5),

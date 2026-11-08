@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../app/di.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_typography.dart';
 import '../bloc/activity_bloc.dart';
@@ -14,7 +15,7 @@ class ActivityPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => ActivityBloc()..add(const ActivityInitialized()),
+      create: (context) => getIt<ActivityBloc>()..add(const ActivityInitialized()),
       child: const _ActivityView(),
     );
   }

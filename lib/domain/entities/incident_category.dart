@@ -17,7 +17,7 @@ enum IncidentCategory {
   roadBlock(
     id: 'road_block',
     displayName: 'Road block',
-    iconData: Icons.menu_rounded, // Matches the triple horizontal line barrier icon in screenshots
+    iconData: Icons.menu_rounded,
     color: AppColors.catRoadBlock,
   ),
   flooding(
@@ -51,11 +51,57 @@ enum IncidentCategory {
   final IconData iconData;
   final Color color;
 
-  static IncidentCategory fromId(String id) {
+  static IncidentCategory fromId(String? id) {
+    if (id == null) return IncidentCategory.other;
+    final normalized = id.toLowerCase().replaceAll('-', '_').replaceAll(' ', '_');
     return IncidentCategory.values.firstWhere(
-      (c) => c.id == id,
-      orElse: () => IncidentCategory.other,
+      (c) => c.id == normalized || c.displayName.toLowerCase() == normalized,
+      orElse: () {
+        if (normalized.contains('fire')) return IncidentCategory.fire;
+        if (normalized.contains('accid') || normalized.contains('crash')) return IncidentCategory.accident;
+        if (normalized.contains('block') || normalized.contains('road')) return IncidentCategory.roadBlock;
+        if (normalized.contains('flood') || normalized.contains('water')) return IncidentCategory.flooding;
+        if (normalized.contains('gather') || normalized.contains('crowd')) return IncidentCategory.gathering;
+        return IncidentCategory.other;
+      },
     );
   }
 }
 
+/// Category metadata returned by backend GET /categories.
+class CategoryData {
+  final String id;
+  final String slug;
+  final String name;
+  final String iconKey;
+  final String colorHex;
+  final int sortOrder;
+  final String urgency;
+  final String? safetyNote;
+
+  const CategoryData({
+    required this.id,
+    required this.slug,
+    required this.name,
+    required this.iconKey,
+    required this.colorHex,
+    required this.sortOrder,
+    required this.urgency,
+    this.safetyNote,
+  });
+
+  IncidentCategory get asEnum => IncidentCategory.fromId(slug);
+
+  factory CategoryData.fromJson(Map<String, dynamic> json) {
+    return CategoryData(
+      id: json['id']?.toString() ?? '',
+      slug: json['slug']?.toString() ?? 'other',
+      name: json['name']?.toString() ?? 'Other',
+      iconKey: json['icon_key']?.toString() ?? 'other',
+      colorHex: json['color_hex']?.toString() ?? '#90A4AE',
+      sortOrder: json['sort_order'] is int ? json['sort_order'] as int : 0,
+      urgency: json['urgency']?.toString() ?? 'routine',
+      safetyNote: json['safety_note']?.toString(),
+    );
+  }
+}

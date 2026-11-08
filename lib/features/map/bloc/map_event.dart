@@ -40,3 +40,18 @@ class MapRecenterPressed extends MapEvent {
   const MapRecenterPressed();
 }
 
+class MapUserLocationUpdated extends MapEvent {
+  final double latitude;
+  final double longitude;
+  final String? locationArea;
+
+  const MapUserLocationUpdated({
+    required this.latitude,
+    required this.longitude,
+    this.locationArea,
+  });
+
+  @override
+  List<Object?> get props => [latitude, longitude, locationArea];
+}
+
